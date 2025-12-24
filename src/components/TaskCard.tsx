@@ -12,6 +12,11 @@ const TaskCard = ({ task, onEdit, onDelete }: TaskCardProps) => {
     e.dataTransfer.setData('text/plain', task.id)
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
   return (
     <div 
       className="task-card" 
@@ -21,6 +26,14 @@ const TaskCard = ({ task, onEdit, onDelete }: TaskCardProps) => {
     >
       <div className="task-main">
         <p className="task-title">{task.title}</p>
+        <div className="task-meta">
+          <span className="task-hours" title="Estimated hours">
+            ⏱ {task.estimatedHours}h
+          </span>
+          <span className="task-due" title="Due date">
+            📅 {formatDate(task.dueDate)}
+          </span>
+        </div>
       </div>
       <div className="task-actions">
         <button type="button" className="icon-btn" aria-label="Edit task" onClick={() => onEdit(task)}>

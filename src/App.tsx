@@ -5,7 +5,8 @@ import SideActions from './components/SideActions'
 import TaskModal, { type TaskInput } from './components/TaskModal'
 import ConfirmDialog from './components/ConfirmDialog'
 import Footer from './components/Footer'
-import type { Quadrant, QuadrantKey, Task, Theme } from './types/quadrant'
+import PlanModal from './components/PlanModal'
+import type { Quadrant, QuadrantKey, Task, Theme, TimeWindow } from './types/quadrant'
 
 const quadrants: Quadrant[] = [
   {
@@ -62,14 +63,31 @@ function App() {
   const [helpMode, setHelpMode] = useState(false)
   const [balanceMode, setBalanceMode] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [timeWindow, setTimeWindow] = useState<TimeWindow | undefined>(undefined)
+  const [showPlanModal, setShowPlanModal] = useState(false)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     window.localStorage.setItem('theme', theme)
   }, [theme])
 
-  const title = useMemo(() => 'ChroNiyam', [])
+  const title = useMemo(() => 'Chroनियम', [])
   const quadrantNames = useMemo<QuadrantKey[]>(() => quadrants.map((q) => q.title), [])
+
+  // Calculate allocated hours whenever tasks change
+  const allocatedHours = useMemo(() => {
+    return tasks.reduce((sum, task) => sum + task.estimatedHours, 0)
+  }, [tasks])
+
+  // Create computed time window with updated allocated hours
+  const currentTimeWindow = useMemo(() => {
+    if (!timeWindow) return undefined
+    return { ...timeWindow, allocatedHours }
+  }, [timeWindow, allocatedHours])
+
+  const handlePlanUpdate = (plan: TimeWindow) => {
+    setTimeWindow(plan)
+  }
 
   const upsertTask = (input: TaskInput) => {
     const id = input.id ?? crypto.randomUUID()
@@ -124,7 +142,12 @@ function App() {
 
   return (
     <div className="app-shell">
-      <Header title={title} theme={theme} onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')} />
+      <Header 
+        title={title} 
+        theme={theme} 
+        onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+        timeWindow={currentTimeWindow}
+      />
       <div className="layout">
         <SideActions 
           onAddTask={handleAddClick} 
@@ -134,6 +157,7 @@ function App() {
           onToggleHelp={() => setHelpMode(!helpMode)}
           balanceMode={balanceMode}
           onToggleBalance={() => setBalanceMode(!balanceMode)}
+          onPlan={() => setShowPlanModal(true)}
         />
         <div className="matrix-main">
           <QuadrantGrid
@@ -155,6 +179,8 @@ function App() {
         onClose={handleCloseModal}
         onSave={upsertTask}
         initialTask={editingTask}
+        timeWindow={currentTimeWindow}
+        allTasks={tasks}
       />
       <ConfirmDialog
         isOpen={showClearConfirm}
@@ -165,6 +191,12 @@ function App() {
         isDangerous={true}
         onConfirm={handleConfirmClear}
         onCancel={handleCancelClear}
+      />
+      <PlanModal
+        isOpen={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        onSave={handlePlanUpdate}
+        currentPlan={currentTimeWindow}
       />
     </div>
   )

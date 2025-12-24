@@ -84,10 +84,12 @@ const QuadrantGrid = ({ quadrants, tasks, onEditTask, onDeleteTask, helpMode, on
                 <div className="quadrant-header">
                   <div className="quadrant-info">
                     <h2 className="quadrant-title">{quadrant.title}</h2>
-                    <p className="quadrant-description">{quadrant.description}</p>
-                    {balanceMode && idealRange && (
-                      <p className="quadrant-ideal">{idealRange.label}</p>
-                    )}
+                    <p className="quadrant-description">
+                      {quadrant.description}
+                      {balanceMode && idealRange && (
+                        <span className="quadrant-ideal-inline"> • {idealRange.label}</span>
+                      )}
+                    </p>
                   </div>
                   <div className="quadrant-count-wrapper">
                     <div className="quadrant-count">{taskCount}</div>
