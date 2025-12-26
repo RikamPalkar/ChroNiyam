@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { QuadrantKey, Task } from '../types/quadrant'
+import { validateAllocation, calculateCurrentHours } from '../utils/hoursAllocationEngine'
 
 type TaskModalProps = {
   isOpen: boolean
@@ -7,7 +8,7 @@ type TaskModalProps = {
   onClose: () => void
   onSave: (task: TaskInput) => void
   initialTask?: Task
-  timeWindow?: { startDate: string; endDate: string; hoursPerDay: number; totalHours: number; allocatedHours: number }
+  timeWindow?: { startDate: string; endDate: string; hoursPerDay: number; totalHours?: number; allocatedHours?: number; days?: number }
   allTasks?: Task[]
 }
 
@@ -20,12 +21,18 @@ export type TaskInput = {
   startDate: string
   dueDate: string
   completed: boolean
+  isRecurring?: boolean
 }
 
 const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow, allTasks = [] }: TaskModalProps) => {
   const getDefaultDueDate = () => {
     if (timeWindow) return timeWindow.startDate
-    return new Date().toISOString().split('T')[0]
+    // Use local date to avoid timezone issues
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   const emptyTask: TaskInput = {
@@ -36,25 +43,41 @@ const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow
     startDate: getDefaultDueDate(),
     dueDate: getDefaultDueDate(),
     completed: false,
+    isRecurring: false,
   }
   
   const [draft, setDraft] = useState<TaskInput>(initialTask ?? emptyTask)
   const [error, setError] = useState<string>('')
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
+  // Compute current hours allocation once per render
+  const currentHours = useMemo(() => {
+    // When editing a task, exclude it from current hours calculation
+    // When adding a new task, include all existing tasks
+    const tasksToUse = initialTask 
+      ? allTasks.filter((t) => t.id !== initialTask.id)
+      : allTasks
+    return calculateCurrentHours(tasksToUse, timeWindow?.hoursPerDay || 8)
+  }, [allTasks, initialTask, timeWindow?.hoursPerDay])
 
-  const getDayUsageSummary = (date: string) => {
-    const tasksOnDay = allTasks.filter((t) => (t.startDate || t.dueDate) === date && t.id !== initialTask?.id)
-    const used = tasksOnDay.reduce((sum, t) => sum + (t.estimatedHours || 0), 0)
-    const remaining = timeWindow ? Math.max(0, timeWindow.hoursPerDay - used) : Infinity
-    return { used, remaining }
+  // Helper to build date range without timezone issues
+  const buildDateRange = (startDateStr: string, endDateStr: string): string[] => {
+    const dates: string[] = []
+    const [startYear, startMonth, startDay] = startDateStr.split('-').map(Number)
+    const [endYear, endMonth, endDay] = endDateStr.split('-').map(Number)
+    
+    const current = new Date(startYear, startMonth - 1, startDay)
+    const end = new Date(endYear, endMonth - 1, endDay)
+    
+    while (current <= end) {
+      const year = current.getFullYear()
+      const month = String(current.getMonth() + 1).padStart(2, '0')
+      const day = String(current.getDate()).padStart(2, '0')
+      dates.push(`${year}-${month}-${day}`)
+      current.setDate(current.getDate() + 1)
+    }
+    
+    return dates
   }
-
-  const { remaining: remainingForSelectedDay } = getDayUsageSummary(draft.startDate)
-  const remainingHoursNumber = Number.isFinite(remainingForSelectedDay) ? remainingForSelectedDay : undefined
 
   const validateTask = (task: TaskInput): string => {
     // Start must be on/before due
@@ -62,22 +85,36 @@ const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow
       return 'Due date must be on or after the start date.'
     }
 
-    if (timeWindow) {
-      // Per-day capacity check
-      const { used, remaining } = getDayUsageSummary(task.startDate)
-      if (task.estimatedHours > remaining) {
-        return `Daily limit ${timeWindow.hoursPerDay}h. ${used}h already scheduled. ${remaining}h left on ${formatDate(task.startDate)}.`
-      }
+    // Get all dates in range
+    const dateRange = buildDateRange(task.startDate, task.dueDate)
 
-      // Total window capacity check
-      const otherTasksHours = allTasks
-        .filter((t) => t.id !== initialTask?.id)
-        .reduce((sum, t) => sum + t.estimatedHours, 0)
-      const totalHoursWithNewTask = otherTasksHours + task.estimatedHours
-      
-      if (totalHoursWithNewTask > timeWindow.totalHours) {
-        const remaining = Math.max(0, timeWindow.totalHours - otherTasksHours)
-        return `Task exceeds total available hours. Only ${remaining}h remaining (needs ${task.estimatedHours}h).`
+    // For recurring tasks, validate each day individually
+    if (task.isRecurring) {
+      for (const date of dateRange) {
+        const result = validateAllocation({
+          selectedDates: [date],
+          requestedHours: task.estimatedHours,
+          currentHours,
+          dailyLimit: timeWindow?.hoursPerDay || 8,
+        })
+
+        if (!result.isValid && result.errors.length > 0) {
+          const dateObj = new Date(date + 'T00:00:00')
+          const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          return `${formattedDate}: ${result.errors[0]}`
+        }
+      }
+    } else {
+      // For non-recurring, validate entire date range at once
+      const result = validateAllocation({
+        selectedDates: dateRange,
+        requestedHours: task.estimatedHours,
+        currentHours,
+        dailyLimit: timeWindow?.hoursPerDay || 8,
+      })
+
+      if (!result.isValid && result.errors.length > 0) {
+        return result.errors[0]
       }
     }
 
@@ -162,9 +199,6 @@ const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow
                   min={timeWindow?.startDate}
                   max={timeWindow?.endDate}
                 />
-                {timeWindow && remainingHoursNumber !== undefined && (
-                  <span className="field-hint">This day has {remainingHoursNumber}h remaining</span>
-                )}
               </div>
             </label>
 
@@ -191,7 +225,6 @@ const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow
                 required
                 min="0.5"
                 step="0.5"
-                max={timeWindow && remainingHoursNumber !== undefined ? remainingHoursNumber : timeWindow?.hoursPerDay}
                 value={draft.estimatedHours}
                 onChange={(e) => {
                   e.currentTarget.setCustomValidity('')
@@ -199,23 +232,21 @@ const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow
                 }}
                 onInvalid={(e) => {
                   const el = e.currentTarget
-                  if (timeWindow && remainingHoursNumber !== undefined) {
-                    el.setCustomValidity(`Daily limit ${timeWindow.hoursPerDay}h. Only ${remainingHoursNumber}h left.`)
-                  } else if (timeWindow) {
-                    el.setCustomValidity(`Daily limit ${timeWindow.hoursPerDay}h.`)
-                  } else {
-                    el.setCustomValidity('Please enter a valid number of hours.')
-                  }
+                  el.setCustomValidity('Please enter a valid number of hours.')
                 }}
               />
-              {timeWindow && (
-                <span className="field-hint error">
-                  {remainingHoursNumber !== undefined
-                    ? `${remainingHoursNumber}h left on ${formatDate(draft.startDate)}`
-                    : `Daily limit: ${timeWindow.hoursPerDay}h`}
-                </span>
-              )}
             </div>
+          </label>
+
+          <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+            <input
+              type="checkbox"
+              name="isRecurring"
+              checked={draft.isRecurring || false}
+              onChange={(e) => setDraft({ ...draft, isRecurring: e.target.checked })}
+              style={{ width: 'auto', margin: 0 }}
+            />
+            <span className="field-label" style={{ margin: 0 }}>Recurring</span>
           </label>
 
           <div className="modal-actions">

@@ -6,6 +6,7 @@ import TaskModal, { type TaskInput } from './components/TaskModal'
 import ConfirmDialog from './components/ConfirmDialog'
 import Footer from './components/Footer'
 import PlanModal from './components/PlanModal'
+import CalendarView from './components/CalendarView'
 import type { Quadrant, QuadrantKey, Task, Theme, TimeWindow } from './types/quadrant'
 
 const quadrants: Quadrant[] = [
@@ -65,6 +66,7 @@ function App() {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [timeWindow, setTimeWindow] = useState<TimeWindow | undefined>(undefined)
   const [showPlanModal, setShowPlanModal] = useState(false)
+  const [showCalendar, setShowCalendar] = useState(false)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -76,7 +78,16 @@ function App() {
 
   // Calculate allocated hours whenever tasks change
   const allocatedHours = useMemo(() => {
-    return tasks.reduce((sum, task) => sum + task.estimatedHours, 0)
+    return tasks.reduce((sum, task) => {
+      if (task.isRecurring) {
+        // For recurring tasks, calculate total hours = hours per day * number of days
+        const startDate = new Date(task.startDate)
+        const endDate = new Date(task.dueDate)
+        const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+        return sum + (task.estimatedHours * daysDiff)
+      }
+      return sum + task.estimatedHours
+    }, 0)
   }, [tasks])
 
   // Create computed time window with updated allocated hours
@@ -147,6 +158,7 @@ function App() {
         theme={theme} 
         onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
         timeWindow={currentTimeWindow}
+        onFinalizePlan={() => setShowCalendar(true)}
       />
       <div className="layout">
         <SideActions 
@@ -158,6 +170,7 @@ function App() {
           balanceMode={balanceMode}
           onToggleBalance={() => setBalanceMode(!balanceMode)}
           onPlan={() => setShowPlanModal(true)}
+          onViewCalendar={() => setShowCalendar(true)}
         />
         <div className="matrix-main">
           <QuadrantGrid
@@ -197,6 +210,14 @@ function App() {
         onClose={() => setShowPlanModal(false)}
         onSave={handlePlanUpdate}
         currentPlan={currentTimeWindow}
+      />
+      <CalendarView
+        isOpen={showCalendar}
+        onClose={() => setShowCalendar(false)}
+        tasks={tasks}
+        startDate={timeWindow?.startDate || ''}
+        endDate={timeWindow?.endDate || ''}
+        hoursPerDay={timeWindow?.hoursPerDay || 8}
       />
     </div>
   )

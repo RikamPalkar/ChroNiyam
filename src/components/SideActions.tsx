@@ -9,9 +9,10 @@ type SideActionsProps = {
   balanceMode: boolean
   onToggleBalance: () => void
   onPlan: () => void
+  onViewCalendar: () => void
 }
 
-const SideActions = ({ onAddTask, onClear, hasTasks, helpMode, onToggleHelp, balanceMode, onToggleBalance, onPlan }: SideActionsProps) => {
+const SideActions = ({ onAddTask, onClear, hasTasks, helpMode, onToggleHelp, balanceMode, onToggleBalance, onPlan, onViewCalendar }: SideActionsProps) => {
   return (
     <aside className="side-actions" aria-label="Task actions">
       <Tooltip content={['Plan Time Window', 'Set up your time window and define productive hours for better task planning.']} show={helpMode} position="right">
@@ -37,6 +38,20 @@ const SideActions = ({ onAddTask, onClear, hasTasks, helpMode, onToggleHelp, bal
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
+      </Tooltip>
+      <Tooltip content={['View Calendar', 'View your tasks in calendar format with daily schedule.']} show={helpMode} position="right">
+        <button
+          type="button"
+          className="icon-tile ghost"
+          onClick={onViewCalendar}
+          aria-label="View calendar"
+          title="View calendar"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </button>
       </Tooltip>

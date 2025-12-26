@@ -27,4 +27,5 @@ export type Task = {
   startDate: string
   dueDate: string
   completed: boolean
+  isRecurring?: boolean
 }
