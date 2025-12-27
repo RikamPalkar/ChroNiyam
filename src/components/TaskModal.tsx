@@ -164,22 +164,49 @@ const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow
             />
           </label>
 
-          <label className="field">
-            <span className="field-label">Quadrant *</span>
-            <select
-              name="quadrant"
-              value={draft.quadrant}
-              onChange={(e) => setDraft({ ...draft, quadrant: e.target.value as QuadrantKey })}
-            >
-              {quadrants.map((quad) => (
-                <option key={quad} value={quad}>
-                  {quad}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="field-row field-row-equal">
+            <label className="field">
+              <span className="field-label">Quadrant *</span>
+              <select
+                name="quadrant"
+                value={draft.quadrant}
+                onChange={(e) => setDraft({ ...draft, quadrant: e.target.value as QuadrantKey })}
+              >
+                {quadrants.map((quad) => (
+                  <option key={quad} value={quad}>
+                    {quad}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <div className="field-row">
+            <label className="field">
+              <span className="field-label">
+                <span className="label-full">Estimated Hours *</span>
+                <span className="label-short">Est. Hrs *</span>
+              </span>
+              <div className="field-with-hint">
+                <input
+                  type="number"
+                  name="estimatedHours"
+                  required
+                  min="0.5"
+                  step="0.5"
+                  value={draft.estimatedHours}
+                  onChange={(e) => {
+                    e.currentTarget.setCustomValidity('')
+                    setDraft({ ...draft, estimatedHours: parseFloat(e.target.value) || 1 })
+                  }}
+                  onInvalid={(e) => {
+                    const el = e.currentTarget
+                    el.setCustomValidity('Please enter a valid number of hours.')
+                  }}
+                />
+              </div>
+            </label>
+          </div>
+
+          <div className="field-row field-row-equal">
             <label className="field">
               <span className="field-label">Start Date *</span>
               <div className="field-with-hint">
@@ -216,28 +243,6 @@ const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow
             </label>
           </div>
 
-          <label className="field">
-            <span className="field-label">Estimated Hours *</span>
-            <div className="field-with-hint">
-              <input
-                type="number"
-                name="estimatedHours"
-                required
-                min="0.5"
-                step="0.5"
-                value={draft.estimatedHours}
-                onChange={(e) => {
-                  e.currentTarget.setCustomValidity('')
-                  setDraft({ ...draft, estimatedHours: parseFloat(e.target.value) || 1 })
-                }}
-                onInvalid={(e) => {
-                  const el = e.currentTarget
-                  el.setCustomValidity('Please enter a valid number of hours.')
-                }}
-              />
-            </div>
-          </label>
-
           <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
             <input
               type="checkbox"
@@ -248,16 +253,19 @@ const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow
             />
             <span className="field-label" style={{ margin: 0 }}>Recurring</span>
           </label>
-
-          <div className="modal-actions">
-            <button type="submit" className="btn primary">
-              {initialTask ? 'Save Task' : 'Add Task'}
-            </button>
-            <button type="button" className="btn ghost" onClick={onClose}>
-              Cancel
-            </button>
-          </div>
         </form>
+
+        <div className="modal-actions">
+          <button type="button" className="btn ghost" onClick={onClose} title="Cancel and close">
+            Cancel
+          </button>
+          <button type="button" className="btn primary" onClick={(e) => {
+            const form = e.currentTarget.closest('.modal')?.querySelector('form');
+            form?.requestSubmit();
+          }} title={initialTask ? 'Save changes to task' : 'Add this task'}>
+            {initialTask ? 'Save Task' : 'Add Task'}
+          </button>
+        </div>
       </div>
     </div>
   )

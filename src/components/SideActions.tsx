@@ -10,11 +10,26 @@ type SideActionsProps = {
   onToggleBalance: () => void
   onPlan: () => void
   onViewCalendar: () => void
+  onShowGuide: () => void
 }
 
-const SideActions = ({ onAddTask, onClear, hasTasks, helpMode, onToggleHelp, balanceMode, onToggleBalance, onPlan, onViewCalendar }: SideActionsProps) => {
+const SideActions = ({ onAddTask, onClear, hasTasks, helpMode, onToggleHelp, balanceMode, onToggleBalance, onPlan, onViewCalendar, onShowGuide }: SideActionsProps) => {
   return (
     <aside className="side-actions" aria-label="Task actions">
+      <Tooltip content={['Getting Started Guide', 'Learn how to use ChroNiyam effectively with a step-by-step walkthrough.']} show={helpMode} position="right">
+        <button
+          type="button"
+          className="icon-tile ghost"
+          onClick={onShowGuide}
+          aria-label="Show guide"
+          title="Show getting started guide"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </Tooltip>
       <Tooltip content={['Plan Time Window', 'Set up your time window and define productive hours for better task planning.']} show={helpMode} position="right">
         <button
           type="button"

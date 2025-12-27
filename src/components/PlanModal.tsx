@@ -71,7 +71,7 @@ const PlanModal = ({ isOpen, onClose, onSave, currentPlan }: PlanModalProps) => 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal plan-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Plan Your Time Window</h2>
+          <h2>Plan Your Time Window</h2>
           <button className="icon-btn" onClick={onClose} aria-label="Close modal">
             ✕
           </button>
@@ -79,47 +79,52 @@ const PlanModal = ({ isOpen, onClose, onSave, currentPlan }: PlanModalProps) => 
 
         <div className="modal-form">
           <div className="field">
-            <label className="field-label">Time Window</label>
+            <label className="field-label">Duration</label>
             <div className="window-type-selector">
               <button
                 type="button"
                 className={`btn ${windowType === 'week' ? 'primary' : 'secondary'}`}
                 onClick={() => setWindowType('week')}
+                title="7 day time window"
               >
-                Week (7 days)
+                Week
               </button>
               <button
                 type="button"
                 className={`btn ${windowType === 'month' ? 'primary' : 'secondary'}`}
                 onClick={() => setWindowType('month')}
+                title="30 day time window"
               >
-                Month (30 days)
+                Month
               </button>
               <button
                 type="button"
                 className={`btn ${windowType === 'custom' ? 'primary' : 'secondary'}`}
                 onClick={() => setWindowType('custom')}
+                title="Custom date range"
               >
                 Custom
               </button>
             </div>
           </div>
 
-          <div className="field-row">
+          <div className="field-row plan-date-row">
             <div className="field">
               <label className="field-label">Start Date</label>
-              <div className="start-date-toggle">
+              <div className="toggle-switch">
                 <button
                   type="button"
-                  className={`btn ${!startTomorrow ? 'primary' : 'secondary'}`}
+                  className={`toggle-option ${!startTomorrow ? 'active' : ''}`}
                   onClick={() => setStartTomorrow(false)}
+                  title="Start planning from today"
                 >
                   Today
                 </button>
                 <button
                   type="button"
-                  className={`btn ${startTomorrow ? 'primary' : 'secondary'}`}
+                  className={`toggle-option ${startTomorrow ? 'active' : ''}`}
                   onClick={() => setStartTomorrow(true)}
+                  title="Start planning from tomorrow"
                 >
                   Tomorrow
                 </button>
@@ -127,7 +132,7 @@ const PlanModal = ({ isOpen, onClose, onSave, currentPlan }: PlanModalProps) => 
             </div>
 
             <div className="field">
-              <label className="field-label">Hours/Day</label>
+              <label className="field-label">Daily Hours</label>
               <input
                 type="number"
                 min="1"
@@ -136,63 +141,51 @@ const PlanModal = ({ isOpen, onClose, onSave, currentPlan }: PlanModalProps) => 
                 onChange={(e) => setHoursPerDay(Math.min(24, Math.max(1, parseInt(e.target.value) || 8)))}
               />
             </div>
-          </div>
 
-          {windowType === 'custom' && (
-            <div className="field">
-              <label className="field-label">End Date</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={(() => {
-                  const minDate = new Date(getStartDate())
-                  minDate.setDate(minDate.getDate() + 1)
-                  return minDate.toISOString().split('T')[0]
-                })()}
-              />
-            </div>
-          )}
+            {windowType === 'custom' ? (
+              <div className="field">
+                <label className="field-label">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={(() => {
+                    const minDate = new Date(getStartDate())
+                    minDate.setDate(minDate.getDate() + 1)
+                    return minDate.toISOString().split('T')[0]
+                  })()}
+                />
+              </div>
+            ) : (
+              <div className="field field-spacer"></div>
+            )}
+          </div>
 
           <div className="plan-summary">
             <div className="summary-inline">
               <span className="summary-part">
-                <span className="summary-label">Start:</span>
+                <span className="summary-label">Starts</span>
                 <span className="summary-value start-date">{startTomorrow ? 'Tomorrow' : 'Today'}</span>
               </span>
-              <span className="summary-separator">|</span>
-              {windowType === 'custom' && (
-                <>
-                  <span className="summary-part">
-                    <span className="summary-label">Duration:</span>
-                    <span className="summary-value">{days} days</span>
-                  </span>
-                  <span className="summary-separator">|</span>
-                </>
-              )}
-              {(windowType === 'week' || windowType === 'month') && (
-                <>
-                  <span className="summary-part">
-                    <span className="summary-label">Ends:</span>
-                    <span className="summary-value">{new Date(endDateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                  </span>
-                  <span className="summary-separator">|</span>
-                </>
-              )}
+              <span className="summary-separator">•</span>
+              <span className="summary-part">
+                <span className="summary-label">{days} days</span>
+                <span className="summary-value">× {hoursPerDay}h</span>
+              </span>
+              <span className="summary-separator">•</span>
               <span className="summary-part highlight">
-                <span className="summary-label">Total Available Hours:</span>
-                <span className="summary-value">{totalHours}h</span>
+                <span className="summary-value">{totalHours}h total</span>
               </span>
             </div>
           </div>
         </div>
 
         <div className="modal-actions">
-          <button type="button" className="btn secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="button" className="btn primary" onClick={handleSave}>
+          <button type="button" className="btn primary" onClick={handleSave} title="Save this time window plan">
             Save Plan
+          </button>
+          <button type="button" className="btn secondary" onClick={onClose} title="Cancel and close">
+            Cancel
           </button>
         </div>
       </div>

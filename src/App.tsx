@@ -7,6 +7,7 @@ import ConfirmDialog from './components/ConfirmDialog'
 import Footer from './components/Footer'
 import PlanModal from './components/PlanModal'
 import CalendarView from './components/CalendarView'
+import GuideModal from './components/GuideModal'
 import type { Quadrant, QuadrantKey, Task, Theme, TimeWindow } from './types/quadrant'
 
 const quadrants: Quadrant[] = [
@@ -67,6 +68,7 @@ function App() {
   const [timeWindow, setTimeWindow] = useState<TimeWindow | undefined>(undefined)
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -171,6 +173,7 @@ function App() {
           onToggleBalance={() => setBalanceMode(!balanceMode)}
           onPlan={() => setShowPlanModal(true)}
           onViewCalendar={() => setShowCalendar(true)}
+          onShowGuide={() => setShowGuide(true)}
         />
         <div className="matrix-main">
           <QuadrantGrid
@@ -218,6 +221,10 @@ function App() {
         startDate={timeWindow?.startDate || ''}
         endDate={timeWindow?.endDate || ''}
         hoursPerDay={timeWindow?.hoursPerDay || 8}
+      />
+      <GuideModal
+        isOpen={showGuide}
+        onClose={() => setShowGuide(false)}
       />
     </div>
   )
