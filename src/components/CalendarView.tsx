@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react'
 import type { Task } from '../types/quadrant'
 
 type CalendarViewProps = {
@@ -10,7 +11,8 @@ type CalendarViewProps = {
 }
 
 const CalendarView = ({ isOpen, onClose, tasks, startDate, endDate, hoursPerDay }: CalendarViewProps) => {
-  if (!isOpen) return null
+  const [viewMode, setViewMode] = useState<'week' | 'month'>('week')
+  const [currentWeekIndex, setCurrentWeekIndex] = useState(0)
 
   // Parse dates safely without timezone issues
   const parseDate = (dateStr: string): Date => {
@@ -25,15 +27,63 @@ const CalendarView = ({ isOpen, onClose, tasks, startDate, endDate, hoursPerDay 
     return `${year}-${month}-${day}`
   }
 
-  const start = parseDate(startDate)
-  const end = parseDate(endDate)
+  const start = useMemo(() => parseDate(startDate), [startDate])
+  const end = useMemo(() => parseDate(endDate), [endDate])
 
-  // Get all days in the range
-  const days: Date[] = []
-  const current = new Date(start)
-  while (current <= end) {
-    days.push(new Date(current))
-    current.setDate(current.getDate() + 1)
+  // Split date range into weeks (Monday-Sunday)
+  const weeks = useMemo(() => {
+    const allWeeks: Date[][] = []
+    const current = new Date(start)
+    
+    while (current <= end) {
+      const weekDays: Date[] = []
+      
+      // Get days for this week (up to 7 days or until end date)
+      for (let i = 0; i < 7 && current <= end; i++) {
+        weekDays.push(new Date(current))
+        current.setDate(current.getDate() + 1)
+      }
+      
+      if (weekDays.length > 0) {
+        allWeeks.push(weekDays)
+      }
+    }
+    
+    return allWeeks
+  }, [start, end])
+
+  // Get current view days based on mode
+  const days = useMemo(() => {
+    if (viewMode === 'month') {
+      // Show all days
+      const allDays: Date[] = []
+      const current = new Date(start)
+      while (current <= end) {
+        allDays.push(new Date(current))
+        current.setDate(current.getDate() + 1)
+      }
+      return allDays
+    } else {
+      // Show current week only
+      return weeks[currentWeekIndex] || []
+    }
+  }, [viewMode, currentWeekIndex, weeks, start, end])
+
+  if (!isOpen) return null
+
+  const canGoPrevious = currentWeekIndex > 0
+  const canGoNext = currentWeekIndex < weeks.length - 1
+
+  const handlePrevious = () => {
+    if (canGoPrevious) {
+      setCurrentWeekIndex(currentWeekIndex - 1)
+    }
+  }
+
+  const handleNext = () => {
+    if (canGoNext) {
+      setCurrentWeekIndex(currentWeekIndex + 1)
+    }
   }
 
   // Calculate hours using sequential allocation algorithm
@@ -105,9 +155,56 @@ const CalendarView = ({ isOpen, onClose, tasks, startDate, endDate, hoursPerDay 
                 <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
                 <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
-              <h2>Weekly Calendar</h2>
+              <h2>Calendar</h2>
             </div>
-            <div className="calendar-subtitle">{hoursPerDay} hours/day</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="toggle-switch" style={{ marginBottom: 0 }}>
+                <button
+                  type="button"
+                  className={`toggle-option ${viewMode === 'week' ? 'active' : ''}`}
+                  onClick={() => setViewMode('week')}
+                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
+                >
+                  Week
+                </button>
+                <button
+                  type="button"
+                  className={`toggle-option ${viewMode === 'month' ? 'active' : ''}`}
+                  onClick={() => setViewMode('month')}
+                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
+                >
+                  Month
+                </button>
+              </div>
+              {viewMode === 'week' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={handlePrevious}
+                    disabled={!canGoPrevious}
+                    aria-label="Previous week"
+                    style={{ opacity: canGoPrevious ? 1 : 0.3 }}
+                  >
+                    ←
+                  </button>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', minWidth: '80px', textAlign: 'center' }}>
+                    Week {currentWeekIndex + 1} of {weeks.length}
+                  </span>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={handleNext}
+                    disabled={!canGoNext}
+                    aria-label="Next week"
+                    style={{ opacity: canGoNext ? 1 : 0.3 }}
+                  >
+                    →
+                  </button>
+                </div>
+              )}
+              <div className="calendar-subtitle">{hoursPerDay}h/day</div>
+            </div>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
             ×

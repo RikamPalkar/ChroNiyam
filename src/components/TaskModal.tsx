@@ -138,11 +138,32 @@ const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow
 
   if (!isOpen) return null
 
+  const formatDateRange = (startString: string, endString: string) => {
+    const start = new Date(startString)
+    const end = new Date(endString)
+    const startMonth = start.toLocaleDateString('en-US', { month: 'short' })
+    const endMonth = end.toLocaleDateString('en-US', { month: 'short' })
+    const startDay = start.getDate()
+    const endDay = end.getDate()
+    
+    if (startMonth === endMonth) {
+      return `${startMonth} ${startDay}–${endDay}`
+    }
+    return `${startMonth} ${startDay} – ${endMonth} ${endDay}`
+  }
+
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Add task">
       <div className="modal">
         <header className="modal-header">
-          <h2>{initialTask ? 'Edit Task' : 'Add Task'}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h2>{initialTask ? 'Edit Task' : 'Add Task'}</h2>
+            {timeWindow && (
+              <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: 'normal' }}>
+                ({formatDateRange(timeWindow.startDate, timeWindow.endDate)})
+              </span>
+            )}
+          </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
             ×
           </button>
@@ -190,12 +211,13 @@ const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow
                   type="number"
                   name="estimatedHours"
                   required
-                  min="0.5"
+                  min="0"
                   step="0.5"
-                  value={draft.estimatedHours}
+                  value={draft.estimatedHours === 0 ? '' : draft.estimatedHours}
                   onChange={(e) => {
                     e.currentTarget.setCustomValidity('')
-                    setDraft({ ...draft, estimatedHours: parseFloat(e.target.value) || 1 })
+                    const val = e.target.value === '' ? 0 : parseFloat(e.target.value)
+                    setDraft({ ...draft, estimatedHours: isNaN(val) ? 0 : val })
                   }}
                   onInvalid={(e) => {
                     const el = e.currentTarget
@@ -256,14 +278,19 @@ const TaskModal = ({ isOpen, quadrants, onClose, onSave, initialTask, timeWindow
         </form>
 
         <div className="modal-actions">
+          <button
+            type="button"
+            className="btn primary"
+            onClick={(e) => {
+              const form = e.currentTarget.closest('.modal')?.querySelector('form')
+              form?.requestSubmit()
+            }}
+            title={initialTask ? 'Save changes to task' : 'Add this task'}
+          >
+            {initialTask ? 'Save Task' : 'Add Task'}
+          </button>
           <button type="button" className="btn ghost" onClick={onClose} title="Cancel and close">
             Cancel
-          </button>
-          <button type="button" className="btn primary" onClick={(e) => {
-            const form = e.currentTarget.closest('.modal')?.querySelector('form');
-            form?.requestSubmit();
-          }} title={initialTask ? 'Save changes to task' : 'Add this task'}>
-            {initialTask ? 'Save Task' : 'Add Task'}
           </button>
         </div>
       </div>

@@ -31,13 +31,15 @@ const ConfirmDialog = ({
           <p>{message}</p>
         </div>
         <div className="modal-actions">
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={onCancel}
-          >
-            {cancelText}
-          </button>
+          {cancelText && (
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={onCancel}
+            >
+              {cancelText}
+            </button>
+          )}
           <button
             type="button"
             className={`btn ${isDangerous ? 'danger' : 'primary'}`}

@@ -88,7 +88,7 @@ body {
   justify-content: space-between;
   width: calc(100% - 160px - 1rem);
   position: relative;
-  margin-bottom: 0;
+  margin-bottom: 1.5rem;
   margin-left: calc(160px + 1rem);
   flex-shrink: 0;
   padding-bottom: 0.75rem;
@@ -713,6 +713,10 @@ select {
   color: var(--text);
 }
 
+select {
+  height: 2.5rem;
+}
+
 input[type="date"],
 input[type="number"] {
   padding-right: 0.5rem;
@@ -796,10 +800,12 @@ textarea {
   border-radius: 8px;
   padding: 3px;
   gap: 2px;
+  height: 2.5rem;
+  box-sizing: border-box;
 }
 
 .toggle-option {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 1rem;
   border: none;
   background: transparent;
   color: var(--muted);
@@ -809,6 +815,9 @@ textarea {
   font-weight: 500;
   transition: all 0.2s ease;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toggle-option:hover {
@@ -951,19 +960,23 @@ textarea {
 }
 
 .btn-finalize {
-  padding: 0.25rem 0.75rem;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   font-size: 0.75rem;
   font-weight: 600;
   border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--fg);
-  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 .btn-finalize:hover {

@@ -12,6 +12,9 @@ type QuadrantGridProps = {
   helpMode: boolean
   onMoveTask: (taskId: string, newQuadrant: string) => void
   balanceMode: boolean
+  onCopyTask?: (task: Task) => void
+  onPasteTask?: (quadrant: string) => void
+  copiedTask?: Task | null
 }
 
 const idealRanges: Record<string, { min: number; max: number; label: string }> = {
@@ -21,7 +24,7 @@ const idealRanges: Record<string, { min: number; max: number; label: string }> =
   'Eliminate': { min: 5, max: 15, label: '5-15%' },
 }
 
-const QuadrantGrid = ({ quadrants, tasks, onEditTask, onDeleteTask, helpMode, onMoveTask, balanceMode }: QuadrantGridProps) => {
+const QuadrantGrid = ({ quadrants, tasks, onEditTask, onDeleteTask, helpMode, onMoveTask, balanceMode, onCopyTask, onPasteTask, copiedTask }: QuadrantGridProps) => {
   const [dragOver, setDragOver] = useState<string | null>(null)
 
   const totalTasks = tasks.length
@@ -60,6 +63,12 @@ const QuadrantGrid = ({ quadrants, tasks, onEditTask, onDeleteTask, helpMode, on
     setDragOver(null)
   }
 
+  const handleQuadrantClick = (quadrantTitle: string) => {
+    if (copiedTask && onPasteTask) {
+      onPasteTask(quadrantTitle)
+    }
+  }
+
   return (
     <>
       {balanceMode && <BalanceValidator taskCounts={taskCounts} totalTasks={totalTasks} />}
@@ -80,6 +89,8 @@ const QuadrantGrid = ({ quadrants, tasks, onEditTask, onDeleteTask, helpMode, on
                 onDragOver={(e) => handleDragOver(e, quadrant.title)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, quadrant.title)}
+                onClick={() => handleQuadrantClick(quadrant.title)}
+                style={{ cursor: copiedTask ? 'copy' : 'default' }}
               >
                 <div className="quadrant-header">
                   <div className="quadrant-info">
@@ -110,6 +121,7 @@ const QuadrantGrid = ({ quadrants, tasks, onEditTask, onDeleteTask, helpMode, on
                         task={task}
                         onEdit={onEditTask}
                         onDelete={onDeleteTask}
+                        onCopy={onCopyTask}
                       />
                     ))
                   )}
