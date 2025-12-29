@@ -82,6 +82,9 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
             </svg>
           )}
         </button>
+        <div>
+          <p className="theme-label-text">Theme</p>
+        </div>
       </div>
       {timeWindow && (
         <div className="hours-tracker-container">
