@@ -10,6 +10,7 @@ import CalendarView from './components/CalendarView'
 import GuideModal from './components/GuideModal'
 import type { Quadrant, QuadrantKey, Task, Theme, TimeWindow } from './types/quadrant'
 import { canAllocateHours } from './utils/hoursCalculator'
+import { calculateCurrentHours, getWeekDates, validateAllocation } from './utils/hoursAllocationEngine'
 
 const quadrants: Quadrant[] = [
   {
@@ -184,6 +185,7 @@ function App() {
     if (!currentWeek || !copiedWeekTemplate) return
     
     const targetWeekStart = new Date(currentWeek.startDate)
+    const targetWeekEnd = new Date(currentWeek.endDate)
     
     // Create new tasks with dates adjusted to target week
     const pastedTasks = copiedWeekTemplate.map((template: any) => {
@@ -204,7 +206,79 @@ function App() {
       }
     })
     
+    // Get all dates in target week
+    const weekDates = getWeekDates(currentWeek.startDate)
+    const dailyLimit = currentWeek.hoursPerDay || 8
+    const weeklyLimit = currentWeek.totalHours || 56
+    
+    // Calculate current hours from existing tasks in target week
+    const existingTasks = tasks.filter((task) => {
+      const taskStart = new Date(task.startDate)
+      const taskEnd = new Date(task.dueDate)
+      return taskStart <= targetWeekEnd && taskEnd >= targetWeekStart
+    })
+    
+    const currentDailyHours = calculateCurrentHours(existingTasks, dailyLimit)
+    
+    // Validate each pasted task against available capacity
+    const violations: string[] = []
+    
+    for (const pastedTask of pastedTasks) {
+      const taskStart = new Date(pastedTask.startDate)
+      const taskEnd = new Date(pastedTask.dueDate)
+      
+      // Get dates for this specific task
+      const taskDates: string[] = []
+      const current = new Date(taskStart)
+      while (current <= taskEnd) {
+        const dateStr = current.toISOString().split('T')[0]
+        if (weekDates.includes(dateStr)) {
+          taskDates.push(dateStr)
+        }
+        current.setDate(current.getDate() + 1)
+      }
+      
+      // Use allocation engine to validate this task
+      const validation = validateAllocation({
+        selectedDates: taskDates,
+        requestedHours: pastedTask.estimatedHours,
+        currentHours: currentDailyHours,
+        dailyLimit,
+        allTasks: existingTasks,
+      })
+      
+      if (!validation.isValid) {
+        violations.push(...validation.errors)
+      }
+      
+      // Update currentDailyHours for next task validation (sequential)
+      if (validation.isValid) {
+        let remainingHours = pastedTask.estimatedHours
+        taskDates.forEach((date) => {
+          if (remainingHours > 0) {
+            const available = dailyLimit - (currentDailyHours[date] || 0)
+            const toAdd = Math.min(remainingHours, available)
+            currentDailyHours[date] = (currentDailyHours[date] || 0) + toAdd
+            remainingHours -= toAdd
+          }
+        })
+      }
+    }
+    
+    // Check total weekly hours
+    const totalWeekHours = weekDates.reduce((sum, date) => sum + (currentDailyHours[date] || 0), 0)
+    if (totalWeekHours > weeklyLimit) {
+      violations.push(`Total ${totalWeekHours.toFixed(1)}h exceeds weekly limit of ${weeklyLimit}h`)
+    }
+    
+    if (violations.length > 0) {
+      setPasteError(`Cannot paste tasks:\n${violations.join('\n')}`)
+      setTimeout(() => setPasteError(''), 5000)
+      return
+    }
+    
     setTasks((prev) => [...prev, ...pastedTasks])
+    setPasteError('')
   }
 
   // Check if we can copy/paste
@@ -311,7 +385,20 @@ function App() {
   }
 
   const handleConfirmClear = () => {
-    setTasks([])
+    if (!currentWeek) return
+    
+    const weekStart = new Date(currentWeek.startDate)
+    const weekEnd = new Date(currentWeek.endDate)
+    
+    // Only keep tasks outside current week
+    const filteredTasks = tasks.filter((task) => {
+      const taskStart = new Date(task.startDate)
+      const taskEnd = new Date(task.dueDate)
+      // Keep task if it doesn't overlap with current week
+      return taskStart > weekEnd || taskEnd < weekStart
+    })
+    
+    setTasks(filteredTasks)
     setShowClearConfirm(false)
   }
 
@@ -387,6 +474,7 @@ function App() {
         onPasteWeek={currentWeek ? handlePasteWeek : undefined}
         canCopyWeek={canCopyWeek}
         canPasteWeek={canPasteWeek}
+        tasks={weekTasks}
       />
       <div className="layout">
         <SideActions 

@@ -88,7 +88,7 @@ body {
   justify-content: space-between;
   width: calc(100% - 160px - 1rem);
   position: relative;
-  margin-bottom: 1.5rem;
+  margin-bottom: 4rem;
   margin-left: calc(160px + 1rem);
   flex-shrink: 0;
   padding-bottom: 0.75rem;
@@ -98,8 +98,11 @@ body {
 .hours-tracker-container {
   position: absolute;
   left: 50%;
+  top: 0;
   transform: translateX(-50%);
   pointer-events: none;
+  width: max-content;
+  max-width: 90%;
 }
 
 .hours-tracker-container .hours-tracker {
@@ -155,11 +158,12 @@ body {
   border: 1px solid var(--border);
   background: var(--soft);
   color: var(--text);
-  border-radius: 999px;
-  padding: 0.4rem 0.9rem;
+  border-radius: 60%;
+  width: 48px;
+  height: 48px;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
   cursor: pointer;
   transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
 }
@@ -170,12 +174,11 @@ body {
 }
 
 .theme-icon {
-  font-size: 1rem;
+  display: none;
 }
 
 .theme-label {
-  font-weight: 600;
-  font-size: 0.95rem;
+  display: none;
 }
 
 .matrix-main {
@@ -341,8 +344,6 @@ body {
   gap: 1.25rem;
   flex: 1;
   min-height: 0;
-  max-height: 100%;
-  height: 100%;
   overflow: hidden;
 }
 
@@ -355,7 +356,7 @@ body {
   flex-direction: column;
   gap: 0.75rem;
   height: 100%;
-  min-height: 0;
+  min-height: 200px;
   overflow: hidden;
   transition: border-color 200ms ease, background-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
   cursor: help;
@@ -898,14 +899,12 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   background: var(--soft);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08),
-              0 8px 24px rgba(0, 0, 0, 0.06),
-              inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  min-width: 240px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  min-width: auto;
 }
 
 .progress-bar-container {
@@ -996,12 +995,12 @@ textarea {
 
   .matrix-grid {
     gap: 1rem;
-    grid-template-rows: repeat(2, minmax(280px, 1fr));
+    grid-template-rows: repeat(2, minmax(220px, 1fr));
   }
 
   .quadrant {
     padding: 1rem;
-    min-height: 280px;
+    min-height: 220px;
   }
 
   .side-actions {
@@ -1026,14 +1025,44 @@ textarea {
   }
 
   .matrix-nav {
-    flex-direction: column;
+    display: flex;
+    flex-direction: row;
     align-items: flex-start;
-    gap: 0.5rem;
+    justify-content: space-between;
+    gap: 1rem;
     margin-bottom: 0.75rem;
+    width: 100%;
+    margin-left: 0;
+    position: static;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex: 0 0 auto;
+    margin-top: 10px;
   }
 
   .theme-toggle-wrapper {
     position: static;
+    flex: 0 0 auto;
+    align-self: flex-start;
+    margin-right: 5px;
+  }
+
+  .hours-tracker-container {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    pointer-events: auto;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 1rem;
+    display: block;
+    flex-basis: 100%;
   }
 
   .brand-mark {
@@ -1050,14 +1079,26 @@ textarea {
     font-size: 0.8rem;
   }
 
+  .hours-tracker-container {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    pointer-events: auto;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
   .matrix-grid {
     gap: 0.75rem;
-    grid-template-rows: repeat(2, minmax(240px, 1fr));
+    grid-template-rows: repeat(2, minmax(200px, 1fr));
   }
 
   .quadrant {
     padding: 0.85rem 1rem;
-    min-height: 240px;
+    min-height: 200px;
   }
 
   .quadrant-title {
@@ -1432,6 +1473,13 @@ textarea {
   left: 100%;
   transform: translateY(-50%);
   margin-left: 0.75rem;
+}
+
+.tooltip-content.tooltip-bottom {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.5rem;
 }
 
 .tooltip-text {

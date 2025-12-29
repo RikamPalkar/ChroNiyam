@@ -4,7 +4,7 @@ type TooltipProps = {
   content: string[]
   children: React.ReactNode
   show?: boolean
-  position?: 'center' | 'right'
+  position?: 'center' | 'right' | 'bottom'
 }
 
 const Tooltip = ({ content, children, show = false, position = 'center' }: TooltipProps) => {

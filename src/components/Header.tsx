@@ -1,5 +1,6 @@
-import type { Theme, TimeWindow } from '../types/quadrant'
+import type { Theme, TimeWindow, Task } from '../types/quadrant'
 import { formatHours } from '../utils/hoursCalculator'
+import { calculateCurrentHours, getWeekDates, DAILY_LIMIT } from '../utils/hoursAllocationEngine'
 import Tooltip from './Tooltip'
 
 type HeaderProps = {
@@ -17,16 +18,24 @@ type HeaderProps = {
   onPasteWeek?: () => void
   canCopyWeek?: boolean
   canPasteWeek?: boolean
+  tasks?: Task[]
 }
 
-const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPreviousWeek, onNextWeek, canGoPrevious, canGoNext, currentWeekLabel, onCopyWeek, onPasteWeek, canCopyWeek, canPasteWeek }: HeaderProps) => {
+const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPreviousWeek, onNextWeek, canGoPrevious, canGoNext, currentWeekLabel, onCopyWeek, onPasteWeek, canCopyWeek, canPasteWeek, tasks = [] }: HeaderProps) => {
   const isDark = theme === 'dark'
-  const icon = isDark ? '☀️' : '🌙'
   const label = isDark ? 'Switch to light theme' : 'Switch to dark theme'
 
   const allocatedHours = timeWindow?.allocatedHours || 0
   const totalHours = timeWindow?.totalHours || 56
   const progressPercentage = totalHours > 0 ? (allocatedHours / totalHours) * 100 : 0
+  
+  // Calculate daily hours allocation
+  const dailyHours = timeWindow ? calculateCurrentHours(tasks, timeWindow.hoursPerDay || DAILY_LIMIT) : {}
+  const weekDates = timeWindow ? getWeekDates(timeWindow.startDate) : []
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
   
   const formatDateRange = (startString: string, endString: string) => {
     const start = new Date(startString)
@@ -62,66 +71,135 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
           aria-pressed={isDark}
           aria-label={label}
         >
-          <span className="theme-icon" aria-hidden="true">
-            {icon}
-          </span>
-          <span className="theme-label">{isDark ? 'Dark' : 'Light'}</span>
+          {isDark ? (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2"/>
+              <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          ) : (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
         </button>
       </div>
       {timeWindow && (
         <div className="hours-tracker-container">
           <div className="hours-tracker">
-            <div className="progress-bar-container" style={{ marginTop: '0.75rem' }}>
-              <div className="progress-bar-bg">
-                <div 
-                  className="progress-bar-fill" 
-                  style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                  aria-valuenow={allocatedHours}
-                  aria-valuemin={0}
-                  aria-valuemax={totalHours}
-                  role="progressbar"
-                />
+            {/* Week navigation above progress bar */}
+            {onPreviousWeek && onNextWeek && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={onPreviousWeek}
+                  disabled={!canGoPrevious}
+                  aria-label="Previous week"
+                  style={{ 
+                    background: 'none',
+                    border: 'none',
+                    cursor: canGoPrevious ? 'pointer' : 'not-allowed',
+                    opacity: canGoPrevious ? 1 : 0.3,
+                    fontSize: '0.75rem',
+                    padding: '0.25rem',
+                    color: 'var(--text)'
+                  }}
+                >
+                  ←
+                </button>
+                <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
+                  {currentWeekLabel || formatDateRange(timeWindow.startDate, timeWindow.endDate)}
+                </span>
+                <button
+                  type="button"
+                  onClick={onNextWeek}
+                  disabled={!canGoNext}
+                  aria-label="Next week"
+                  style={{ 
+                    background: 'none',
+                    border: 'none',
+                    cursor: canGoNext ? 'pointer' : 'not-allowed',
+                    opacity: canGoNext ? 1 : 0.3,
+                    fontSize: '0.75rem',
+                    padding: '0.25rem',
+                    color: 'var(--text)'
+                  }}
+                >
+                  →
+                </button>
               </div>
-              <div className="progress-text">
-                {formatHours(allocatedHours)} / {formatHours(totalHours)}
+            )}
+            
+            {/* Progress bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <div className="progress-bar-container" style={{ flex: 1, minWidth: '120px' }}>
+                <div className="progress-bar-bg" style={{ height: '8px' }}>
+                  <div 
+                    className="progress-bar-fill" 
+                    style={{ width: `${Math.min(progressPercentage, 100)}%`, height: '8px' }}
+                    aria-valuenow={allocatedHours}
+                    aria-valuemin={0}
+                    aria-valuemax={totalHours}
+                    role="progressbar"
+                  />
+                </div>
               </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: '600', whiteSpace: 'nowrap' }}>
+                {formatHours(allocatedHours)}/{formatHours(totalHours)}
+              </span>
             </div>
-            <div className="hours-info">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {onPreviousWeek && onNextWeek && (
-                  <>
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      onClick={onPreviousWeek}
-                      disabled={!canGoPrevious}
-                      aria-label="Previous week"
-                      style={{ opacity: canGoPrevious ? 1 : 0.3, cursor: canGoPrevious ? 'pointer' : 'not-allowed' }}
-                    >
-                      ←
-                    </button>
-                    <span className="hours-total" style={{ minWidth: '100px', textAlign: 'center' }}>
-                      {currentWeekLabel || formatDateRange(timeWindow.startDate, timeWindow.endDate)}
-                    </span>
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      onClick={onNextWeek}
-                      disabled={!canGoNext}
-                      aria-label="Next week"
-                      style={{ opacity: canGoNext ? 1 : 0.3, cursor: canGoNext ? 'pointer' : 'not-allowed' }}
-                    >
-                      →
-                    </button>
-                  </>
-                )}
-                {(!onPreviousWeek || !onNextWeek) && (
-                  <span className="hours-total">• Ends {formatDateRange(timeWindow.startDate, timeWindow.endDate)}</span>
-                )}
-              </div>
+            
+            {/* Weekdays and buttons all in one row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              {/* Weekday indicators */}
+              {weekDates.length > 0 && (
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '0.4rem',
+                  fontSize: '0.75rem'
+                }}>
+                  {weekDates.map((date, index) => {
+                    const dateObj = new Date(date)
+                    const isPast = dateObj < today
+                    const hoursUsed = dailyHours[date] || 0
+                    const hoursLimit = timeWindow?.hoursPerDay || DAILY_LIMIT
+                    const hoursLeft = Math.max(0, hoursLimit - hoursUsed)
+                    
+                    return (
+                      <div 
+                        key={date}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          opacity: isPast ? 0.3 : 1,
+                          minWidth: '28px',
+                          padding: '0.15rem',
+                          borderRadius: '4px',
+                          background: hoursLeft === 0 ? 'rgba(239, 68, 68, 0.1)' : 'transparent'
+                        }}
+                      >
+                        <div style={{ fontWeight: '600', fontSize: '0.7rem' }}>
+                          {weekdays[index]}
+                        </div>
+                        <div style={{ 
+                          fontSize: '0.65rem',
+                          color: hoursLeft === 0 ? 'var(--color-error)' : 'var(--color-text-muted)',
+                          fontWeight: '500'
+                        }}>
+                          {hoursLeft}h
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              
+              <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
+              
+              {/* Action buttons */}
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 {onCopyWeek && (
-                  <Tooltip content={[canCopyWeek ? 'Copy all tasks from this week' : 'No tasks to copy']} show={true}>
+                  <Tooltip content={[canCopyWeek ? 'Copy all tasks from this week' : 'No tasks to copy']} show={true} position="bottom">
                     <button 
                       type="button" 
                       className="btn-finalize"
@@ -138,7 +216,7 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
                   </Tooltip>
                 )}
                 {onPasteWeek && (
-                  <Tooltip content={['Paste tasks to this week']} show={canPasteWeek}>
+                  <Tooltip content={['Paste tasks to this week']} show={canPasteWeek} position="bottom">
                     <button 
                       type="button" 
                       className="btn-finalize"
@@ -154,7 +232,7 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
                   </Tooltip>
                 )}
                 {onFinalizePlan && (
-                  <Tooltip content={['Show calendar']} show={true}>
+                  <Tooltip content={['Show calendar']} show={true} position="bottom">
                     <button 
                       type="button" 
                       className="btn-finalize"
