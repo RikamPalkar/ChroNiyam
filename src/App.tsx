@@ -152,6 +152,14 @@ function App() {
   const handleCopyWeek = () => {
     if (!currentWeek) return
     
+    // Helper: Get day of week (0=Monday, 1=Tuesday, ..., 6=Sunday)
+    const getDayOfWeek = (dateStr: string): number => {
+      const [year, month, day] = dateStr.split('-').map(Number)
+      const date = new Date(year, month - 1, day)
+      const dayIndex = date.getDay()
+      return dayIndex === 0 ? 6 : dayIndex - 1 // Convert Sunday=0 to Sunday=6, Monday=1 to Monday=0
+    }
+    
     const currentWeekStart = new Date(currentWeek.startDate)
     const currentWeekEnd = new Date(currentWeek.endDate)
     
@@ -162,19 +170,17 @@ function App() {
       return taskStart <= currentWeekEnd && taskEnd >= currentWeekStart
     })
     
-    // Store relative day offsets instead of absolute dates
+    // Store day-of-week instead of offsets
     const templateTasks = tasksThisWeek.map((task) => {
-      const taskStart = new Date(task.startDate)
-      const taskEnd = new Date(task.dueDate)
-      const startDayOffset = Math.floor((taskStart.getTime() - currentWeekStart.getTime()) / (1000 * 60 * 60 * 24))
-      const endDayOffset = Math.floor((taskEnd.getTime() - currentWeekStart.getTime()) / (1000 * 60 * 60 * 24))
+      const startDayOfWeek = getDayOfWeek(task.startDate)
+      const endDayOfWeek = getDayOfWeek(task.dueDate)
       
       return {
         ...task,
-        startDate: '', // Will be calculated on paste
-        dueDate: '',   // Will be calculated on paste
-        metadata: { startDayOffset, endDayOffset }, // Store relative offsets
-      } as Task & { metadata: { startDayOffset: number; endDayOffset: number } }
+        startDate: '',
+        dueDate: '',
+        metadata: { startDayOfWeek, endDayOfWeek },
+      } as Task & { metadata: { startDayOfWeek: number; endDayOfWeek: number } }
     })
     
     setCopiedWeekTemplate(templateTasks as Task[])
@@ -184,34 +190,65 @@ function App() {
   const handlePasteWeek = () => {
     if (!currentWeek || !copiedWeekTemplate) return
     
-    const targetWeekStart = new Date(currentWeek.startDate)
-    const targetWeekEnd = new Date(currentWeek.endDate)
+    // Helper: Get day of week (0=Monday, 1=Tuesday, ..., 6=Sunday)
+    const getDayOfWeek = (dateStr: string): number => {
+      const [year, month, day] = dateStr.split('-').map(Number)
+      const date = new Date(year, month - 1, day)
+      const dayIndex = date.getDay()
+      return dayIndex === 0 ? 6 : dayIndex - 1
+    }
+    
+    // Helper: Find date in target week that matches the day of week
+    const findDateForDayOfWeek = (targetDayOfWeek: number): string | null => {
+      const weekStart = new Date(currentWeek.startDate)
+      const weekEnd = new Date(currentWeek.endDate)
+      
+      for (let i = 0; i <= 6; i++) {
+        const checkDate = new Date(weekStart)
+        checkDate.setDate(checkDate.getDate() + i)
+        
+        if (checkDate > weekEnd) break
+        
+        const currentDayOfWeek = getDayOfWeek(
+          `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`
+        )
+        
+        if (currentDayOfWeek === targetDayOfWeek) {
+          return `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`
+        }
+      }
+      return null
+    }
     
     // Create new tasks with dates adjusted to target week
-    const pastedTasks = copiedWeekTemplate.map((template: any) => {
-      const newStartDate = new Date(targetWeekStart)
-      newStartDate.setDate(newStartDate.getDate() + template.metadata.startDayOffset)
-      
-      const newDueDate = new Date(targetWeekStart)
-      newDueDate.setDate(newDueDate.getDate() + template.metadata.endDayOffset)
-      
-      const { metadata, ...taskWithoutMetadata } = template
-      
-      return {
-        ...taskWithoutMetadata,
-        id: crypto.randomUUID(),
-        startDate: newStartDate.toISOString().split('T')[0],
-        dueDate: newDueDate.toISOString().split('T')[0],
-        completed: false,
-      }
-    })
+    const pastedTasks = copiedWeekTemplate
+      .map((template: any) => {
+        const { metadata, ...taskWithoutMetadata } = template
+        
+        const newStartDate = findDateForDayOfWeek(metadata.startDayOfWeek)
+        const newDueDate = findDateForDayOfWeek(metadata.endDayOfWeek)
+        
+        // Skip if the day doesn't exist in target week
+        if (!newStartDate || !newDueDate) return null
+        
+        return {
+          ...taskWithoutMetadata,
+          id: crypto.randomUUID(),
+          startDate: newStartDate,
+          dueDate: newDueDate,
+          completed: false,
+        }
+      })
+      .filter(Boolean)
     
-    // Get all dates in target week
+    // Validate against daily and weekly limits
     const weekDates = getWeekDates(currentWeek.startDate)
     const dailyLimit = currentWeek.hoursPerDay || 8
     const weeklyLimit = currentWeek.totalHours || 56
     
-    // Calculate current hours from existing tasks in target week
+    // Calculate current hours from existing tasks
+    const targetWeekStart = new Date(currentWeek.startDate)
+    const targetWeekEnd = new Date(currentWeek.endDate)
     const existingTasks = tasks.filter((task) => {
       const taskStart = new Date(task.startDate)
       const taskEnd = new Date(task.dueDate)
@@ -219,26 +256,25 @@ function App() {
     })
     
     const currentDailyHours = calculateCurrentHours(existingTasks, dailyLimit)
-    
-    // Validate each pasted task against available capacity
     const violations: string[] = []
     
+    // Validate each pasted task
     for (const pastedTask of pastedTasks) {
+      // Get all dates this task spans
+      const taskDates: string[] = []
       const taskStart = new Date(pastedTask.startDate)
       const taskEnd = new Date(pastedTask.dueDate)
+      const currentDate = new Date(taskStart)
       
-      // Get dates for this specific task
-      const taskDates: string[] = []
-      const current = new Date(taskStart)
-      while (current <= taskEnd) {
-        const dateStr = current.toISOString().split('T')[0]
+      while (currentDate <= taskEnd) {
+        const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`
         if (weekDates.includes(dateStr)) {
           taskDates.push(dateStr)
         }
-        current.setDate(current.getDate() + 1)
+        currentDate.setDate(currentDate.getDate() + 1)
       }
       
-      // Use allocation engine to validate this task
+      // Validate this task
       const validation = validateAllocation({
         selectedDates: taskDates,
         requestedHours: pastedTask.estimatedHours,
@@ -251,7 +287,7 @@ function App() {
         violations.push(...validation.errors)
       }
       
-      // Update currentDailyHours for next task validation (sequential)
+      // Update tracking for next task
       if (validation.isValid) {
         let remainingHours = pastedTask.estimatedHours
         taskDates.forEach((date) => {
@@ -265,7 +301,7 @@ function App() {
       }
     }
     
-    // Check total weekly hours
+    // Check weekly total
     const totalWeekHours = weekDates.reduce((sum, date) => sum + (currentDailyHours[date] || 0), 0)
     if (totalWeekHours > weeklyLimit) {
       violations.push(`Total ${totalWeekHours.toFixed(1)}h exceeds weekly limit of ${weeklyLimit}h`)

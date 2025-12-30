@@ -36,7 +36,7 @@ const TaskCard = ({ task, onEdit, onDelete, onCopy }: TaskCardProps) => {
             ⏱ {task.estimatedHours}h
           </span>
           <span className="task-due" title="Due date">
-            📅 {formatDate(task.dueDate)}
+            ⏱ {formatDate(task.dueDate)}
           </span>
         </div>
       </div>
