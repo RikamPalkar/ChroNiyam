@@ -24,6 +24,9 @@ type HeaderProps = {
 const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPreviousWeek, onNextWeek, canGoPrevious, canGoNext, currentWeekLabel, onCopyWeek, onPasteWeek, canCopyWeek, canPasteWeek, tasks = [] }: HeaderProps) => {
   const isDark = theme === 'dark'
   const label = isDark ? 'Switch to light theme' : 'Switch to dark theme'
+  
+  // Week navigation is shown when we have week controls
+  const showWeekNavigation = timeWindow && onPreviousWeek && onNextWeek
 
   const allocatedHours = timeWindow?.allocatedHours || 0
   const totalHours = timeWindow?.totalHours || 56
@@ -57,13 +60,13 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
 
   return (
     <header className="matrix-nav" aria-label="Application header">
-      <div className="brand">
+      <div className="brand" style={{ paddingTop: showWeekNavigation ? '30px' : '15px' }}>
         <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="ChroNiyam Logo" className="brand-logo" />
         <div>
           <p className="brand-title">{title}</p>
         </div>
       </div>
-      <div className="theme-toggle-wrapper">
+      <div className="theme-toggle-wrapper" style={{ paddingTop: showWeekNavigation ? '30px' : '15px' }}>
         <button
           type="button"
           className="theme-toggle"
@@ -91,7 +94,7 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
           <div className="hours-tracker">
             {/* Week navigation above progress bar */}
             {onPreviousWeek && onNextWeek && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem'}}>
                 <button
                   type="button"
                   onClick={onPreviousWeek}
@@ -133,12 +136,12 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
             )}
             
             {/* Progress bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <div className="progress-bar-container" style={{ flex: 1, minWidth: '120px' }}>
-                <div className="progress-bar-bg" style={{ height: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+              <div className="progress-bar-container" style={{ flex: 1, minWidth: '100px' }}>
+                <div className="progress-bar-bg" style={{ height: '6px' }}>
                   <div 
                     className="progress-bar-fill" 
-                    style={{ width: `${Math.min(progressPercentage, 100)}%`, height: '8px' }}
+                    style={{ width: `${Math.min(progressPercentage, 100)}%`, height: '6px' }}
                     aria-valuenow={allocatedHours}
                     aria-valuemin={0}
                     aria-valuemax={totalHours}
@@ -146,13 +149,13 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
                   />
                 </div>
               </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: '600', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: '600', whiteSpace: 'nowrap' }}>
                 {formatHours(allocatedHours)}/{formatHours(totalHours)}
               </span>
             </div>
             
             {/* Weekdays and buttons all in one row */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               {/* Weekday indicators */}
               {weekDates.length > 0 && (
                 <div style={{ 
@@ -175,22 +178,23 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
                           flexDirection: 'column',
                           alignItems: 'center',
                           opacity: isPast ? 0.3 : 1,
-                          minWidth: '28px',
-                          padding: '0.15rem',
-                          borderRadius: '4px',
+                          minWidth: '24px',
+                          padding: '0.08rem 0.1rem',
+                          borderRadius: '3px',
                           background: hoursLeft === 0 ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
                           pointerEvents: isPast ? 'none' : 'auto',
                           cursor: isPast ? 'not-allowed' : 'default'
                         }}
                         title={isPast ? 'Past days cannot be used' : `${hoursLeft}h available`}
                       >
-                        <div style={{ fontWeight: '600', fontSize: '0.7rem' }}>
+                        <div style={{ fontWeight: '600', fontSize: '0.65rem' }}>
                           {weekdays[index]}
                         </div>
                         <div style={{ 
-                          fontSize: '0.65rem',
+                          fontSize: '0.6rem',
                           color: hoursLeft === 0 ? 'var(--color-error)' : 'var(--color-text-muted)',
-                          fontWeight: '500'
+                          fontWeight: '500',
+                          lineHeight: '1'
                         }}>
                           {hoursLeft}h
                         </div>
@@ -200,10 +204,10 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
                 </div>
               )}
               
-              <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
+              <div style={{ width: '1px', height: '18px', background: 'var(--border)' }} />
               
               {/* Action buttons */}
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.35rem' }}>
                 {onCopyWeek && (
                   <Tooltip content={[canCopyWeek ? 'Copy all tasks from this week' : 'No tasks to copy']} show={true} position="bottom">
                     <button 
@@ -214,7 +218,7 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
                       style={{ opacity: canCopyWeek ? 1 : 0.5, cursor: canCopyWeek ? 'pointer' : 'not-allowed' }}
                       aria-label={canCopyWeek ? 'Copy all tasks from this week' : 'No tasks to copy'}
                     >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
                         <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="2"/>
                       </svg>
@@ -231,7 +235,7 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
                       style={{ opacity: canPasteWeek ? 1 : 0.5, cursor: canPasteWeek ? 'pointer' : 'not-allowed' }}
                       aria-label={canPasteWeek ? 'Paste tasks to this week' : 'Copy a week first'}
                     >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth="2"/>
                       </svg>
                     </button>
@@ -245,7 +249,7 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
                       onClick={onFinalizePlan}
                       aria-label="Show calendar"
                     >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
                         <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                       </svg>

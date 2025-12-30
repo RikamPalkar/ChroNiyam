@@ -489,7 +489,7 @@ function App() {
           onViewCalendar={() => setShowCalendar(true)}
           onShowGuide={() => setShowGuide(true)}
         />
-        <div className="matrix-main">
+        <div className="matrix-main" style={{ marginTop: sortedWeeks.length > 1 ? '1rem' : 0 }}>
           <QuadrantGrid
             quadrants={quadrants}
             tasks={weekTasks}
