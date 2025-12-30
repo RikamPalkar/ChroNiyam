@@ -165,7 +165,7 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
                     const isPast = dateObj < today
                     const hoursUsed = dailyHours[date] || 0
                     const hoursLimit = timeWindow?.hoursPerDay || DAILY_LIMIT
-                    const hoursLeft = Math.max(0, hoursLimit - hoursUsed)
+                    const hoursLeft = isPast ? 0 : Math.max(0, hoursLimit - hoursUsed)
                     
                     return (
                       <div 
@@ -178,8 +178,11 @@ const Header = ({ title, theme, onToggleTheme, timeWindow, onFinalizePlan, onPre
                           minWidth: '28px',
                           padding: '0.15rem',
                           borderRadius: '4px',
-                          background: hoursLeft === 0 ? 'rgba(239, 68, 68, 0.1)' : 'transparent'
+                          background: hoursLeft === 0 ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+                          pointerEvents: isPast ? 'none' : 'auto',
+                          cursor: isPast ? 'not-allowed' : 'default'
                         }}
+                        title={isPast ? 'Past days cannot be used' : `${hoursLeft}h available`}
                       >
                         <div style={{ fontWeight: '600', fontSize: '0.7rem' }}>
                           {weekdays[index]}
